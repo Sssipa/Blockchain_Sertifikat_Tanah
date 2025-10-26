@@ -12,7 +12,7 @@ body {
 
  
 .navbar {
-  background: linear-gradient(90deg, #0a1f44, #13294b); /* navy solid */
+  background: linear-gradient(90deg, #0a1f44, #13294b);
   box-shadow: 0 4px 15px rgba(10, 31, 68, 0.4);
 }
 

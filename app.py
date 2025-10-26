@@ -8,38 +8,25 @@ import hashlib
 from werkzeug.utils import secure_filename
 
 
-# -------------------------
-# Inisialisasi Flask app
-# -------------------------
 app = Flask(__name__)
 CORS(app)
-app.secret_key = "supersecretkey"  # untuk flash message
+app.secret_key = "supersecretkey" 
 
-# ID unik node
 node_identifier = str(uuid4()).replace('-', '')
 
-# Inisialisasi blockchain dengan difficulty 3
 blockchain = Blockchain(difficulty=3)
 
-# Folder untuk upload file sertifikat
 UPLOAD_FOLDER = os.path.join(app.root_path, 'uploads')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-
-# -------------------------
-# ROUTES
-# -------------------------
-
 @app.route('/')
 def index():
-    """Tampilkan semua blok dalam blockchain"""
     chain_data = [block.to_dict() for block in blockchain.chain]
     return render_template('index.html', chain=chain_data, length=len(chain_data))
 
 
 @app.route('/mine', methods=['GET'])
 def mine():
-    """Menambang blok baru dari data sertifikat yang sudah ditambahkan"""
     last_block = blockchain.last_block()
     last_proof = last_block.proof
 
@@ -52,7 +39,6 @@ def mine():
 
 @app.route('/certificate/new', methods=['POST'])
 def new_certificate():
-    """Tambah data sertifikat ke buffer (mempool) — tidak langsung menambang."""
     values = request.form.to_dict()
 
     nama = values.get('nama')
@@ -68,15 +54,12 @@ def new_certificate():
     file_hash = None
     file_url = None
     if file and file.filename:
-        # amanin nama file lalu simpan
         filename = f"{uuid.uuid4().hex}_{secure_filename(file.filename)}"
         filepath = os.path.join(UPLOAD_FOLDER, filename)
         file.save(filepath)
         file_hash = blockchain.file_sha256(filepath)
         file_url = url_for('uploaded_file', filename=filename)
 
-    # HANYA tambahkan transaksi ke buffer (current_data)
-    # jika kamu ingin menyimpan file_url juga, tambahkan parameter di add_certificate
     blockchain.add_certificate(nama=nama, nomor=nomor, lokasi=lokasi, luas=luas, file_hash=file_hash)
 
     flash("✅ Transaksi disimpan ke mempool. Klik 'Tambang Blok Baru' untuk menambang.", "success")
@@ -85,13 +68,11 @@ def new_certificate():
 
 @app.route('/uploads/<path:filename>')
 def uploaded_file(filename):
-    """Mengambil file yang sudah diupload"""
     return send_from_directory(UPLOAD_FOLDER, filename)
 
 
 @app.route('/chain', methods=['GET'])
 def full_chain():
-    """Menampilkan seluruh isi blockchain"""
     response = {
         'chain': [block.to_dict() for block in blockchain.chain],
         'length': len(blockchain.chain)
@@ -101,7 +82,6 @@ def full_chain():
 
 @app.route('/nodes/register', methods=['POST'])
 def register_nodes():
-    """Mendaftarkan node baru untuk simulasi jaringan blockchain"""
     values = request.get_json(silent=True) or {}
     nodes = values.get('nodes')
     if not nodes:
@@ -119,7 +99,6 @@ def register_nodes():
 
 @app.route('/nodes/resolve', methods=['GET'])
 def consensus():
-    """Menjalankan mekanisme konsensus antar node"""
     replaced, message = blockchain.resolve_conflicts()
     if replaced:
         response = {
@@ -134,9 +113,6 @@ def consensus():
     return jsonify(response), 200
 
 
-# -------------------------
-# MAIN ENTRY
-# -------------------------
 if __name__ == '__main__':
     import sys
     port = 5000
