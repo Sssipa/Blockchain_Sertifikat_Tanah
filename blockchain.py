@@ -70,7 +70,7 @@ class Blockchain:
       - difficulty: jumlah nol di awal syarat PoW (target = '0'*difficulty)
       - storage_path: path file JSON untuk menyimpan chain (persistence)
     """
-    def __init__(self, difficulty: int = 3, storage_path: str = "chain_data.json"):
+    def __init__(self, difficulty=3, storage_path: str = "chain_data.json"):
         self.chain: List[Block] = []
         self.current_data: List[Dict] = []
         self.nodes: Set[str] = set()
@@ -95,3 +95,191 @@ class Blockchain:
 
     def last_block(self) -> Block:
         return self.chain[-1]
+    def add_certificate(self, nama: str, nomor: str, lokasi: str, luas: str, file_hash: Optional[str] = None) -> int:
+        """
+        Tambah data sertifikat ke buffer current_data. Kembalikan index blok dimana data akan ditempatkan (last_index + 1).
+        Jika ingin langsung menambang blok, gunakan add_certificate_and_mine.
+        """
+        entry = {
+            "nama": nama,
+            "nomor_sertifikat": nomor,
+            "lokasi": lokasi,
+            "luas": luas,
+            "file_hash": file_hash  
+        }
+        self.current_data.append(entry)
+        return self.last_block().index + 1
+
+    def proof_of_work(self, last_proof: int) -> int:
+        """
+        Mencari proof baru sedemikian sehingga hash(last_proof + proof) memenuhi difficulty (diawali '0'*difficulty).
+        Untuk keperluan demo, gunakan difficulty rendah (2-4).
+        """
+        proof = 0
+        target_prefix = '0' * self.difficulty
+        while True:
+            guess = f"{last_proof}{proof}".encode()
+            guess_hash = hashlib.sha256(guess).hexdigest()
+            if guess_hash.startswith(target_prefix):
+                return proof
+            proof += 1
+
+    @staticmethod
+    def valid_proof(last_proof: int, proof: int, difficulty: int) -> bool:
+        guess = f"{last_proof}{proof}".encode()
+        guess_hash = hashlib.sha256(guess).hexdigest()
+        return guess_hash.startswith('0' * difficulty)
+
+    def new_block(self, proof: int, previous_hash: Optional[str] = None) -> Block:
+        """
+        Membuat blok baru dengan proof yang sudah ditemukan. Mengosongkan current_data.
+        previous_hash diambil dari blok terakhir bila tidak diberikan.
+        """
+        prev_hash = previous_hash or self.last_block().hash
+        block = Block(
+            index=self.last_block().index + 1,
+            timestamp=time(),
+            data=self.current_data.copy(),
+            previous_hash=prev_hash,
+            proof=proof,
+            nonce=0
+        )
+        block.hash = block.hash_block()
+        # reset buffer data
+        self.current_data = []
+        self.chain.append(block)
+        self.save_chain()
+        return block
+
+    def add_certificate_and_mine(self, nama: str, nomor: str, lokasi: str, luas: str, file_hash: Optional[str] = None) -> Tuple[Block, int]:
+        """
+        Tambah data sertifikat (ke buffer) lalu jalankan mining (PoW) berdasarkan last_proof,
+        setelah itu buat dan kembalikan blok baru dan proof yang ditemukan.
+        Mengembalikan tuple (block, proof)
+        """
+        self.add_certificate(nama, nomor, lokasi, luas, file_hash)
+        last_proof = self.last_block().proof
+        proof = self.proof_of_work(last_proof)
+        new_block = self.new_block(proof, previous_hash=self.last_block().hash)
+        return new_block, proof
+
+    def is_chain_valid(self) -> Tuple[bool, str]:
+        """
+        Validate seluruh rantai:
+          - previous_hash cocok
+          - hash blok sesuai isi
+          - proof valid (kombinasi previous.proof + current.proof)
+        Kembalikan (True, "Chain valid") jika semua ok, atau (False, reason) jika tidak.
+        """
+        for i in range(1, len(self.chain)):
+            current = self.chain[i]
+            previous = self.chain[i - 1]
+
+            if current.previous_hash != previous.hash:
+                return False, f"Previous hash mismatch at index {current.index}"
+
+            if current.hash != current.hash_block():
+                return False, f"Hash content mismatch at index {current.index}"
+
+            guess = f"{previous.proof}{current.proof}".encode()
+            guess_hash = hashlib.sha256(guess).hexdigest()
+            if not guess_hash.startswith('0' * self.difficulty):
+                return False, f"Proof of Work invalid at index {current.index}"
+
+        return True, "Chain valid"
+
+    def save_chain(self):
+        with open(self.storage_path, "w", encoding="utf-8") as f:
+            json.dump([b.to_dict() for b in self.chain], f, indent=2, ensure_ascii=False)
+
+    def load_chain(self):
+        with open(self.storage_path, "r", encoding="utf-8") as f:
+            raw = json.load(f)
+        self.chain = [Block.from_dict(d) for d in raw]
+
+    def register_node(self, address: str):
+        """
+        Register a node by URL, e.g. 'http://localhost:5001'
+        Validates address and saves network location (netloc).
+        """
+        parsed = urlparse(address)
+        if parsed.netloc:
+            self.nodes.add(parsed.netloc)
+        elif parsed.path:
+            self.nodes.add(parsed.path)
+        else:
+            raise ValueError("Invalid node address")
+
+    def valid_chain_from_nodes(self, chain_data: List[Dict]) -> Tuple[bool, List[Block]]:
+        """
+        Given raw chain data (list of dicts), convert and validate.
+        Return (True, chain_as_blocks) if valid and longer; otherwise (False, []).
+        """
+        try:
+            candidate = [Block.from_dict(d) for d in chain_data]
+        except Exception:
+            return False, []
+
+        for i in range(1, len(candidate)):
+            curr = candidate[i]
+            prev = candidate[i - 1]
+            if curr.previous_hash != prev.hash:
+                return False, []
+            if curr.hash != curr.hash_block():
+                return False, []
+            guess = f"{prev.proof}{curr.proof}".encode()
+            guess_hash = hashlib.sha256(guess).hexdigest()
+            if not guess_hash.startswith('0' * self.difficulty):
+                return False, []
+
+        return True, candidate
+
+    def resolve_conflicts(self) -> Tuple[bool, str]:
+        """
+        Consensus algorithm:
+          - Query all registered nodes for their chains (via /chain endpoint expected).
+          - If a longer valid chain is found, replace local chain.
+        Returns (True, "replaced") if replaced; (False, reason) otherwise.
+        NOTE: requires 'requests' package and that nodes expose a /chain JSON endpoint.
+        """
+        if not requests:
+            return False, "requests library not installed; cannot resolve conflicts"
+
+        neighbours = self.nodes
+        new_chain: Optional[List[Block]] = None
+        max_length = len(self.chain)
+
+        for node in neighbours:
+            try:
+                url = f"http://{node}/chain"
+                resp = requests.get(url, timeout=5)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    length = data.get("length")
+                    chain_data = data.get("chain")
+                    if length is None or chain_data is None:
+                        continue
+                    if length > max_length:
+                        valid, candidate = self.valid_chain_from_nodes(chain_data)
+                        if valid and len(candidate) > max_length:
+                            max_length = len(candidate)
+                            new_chain = candidate
+            except Exception:
+                continue
+
+        if new_chain:
+            self.chain = new_chain
+            self.save_chain()
+            return True, "Chain replaced by longer valid chain"
+        return False, "No longer valid chain found"
+
+    @staticmethod
+    def file_sha256(filepath: str) -> str:
+        """
+        Hitung SHA-256 dari file yang disediakan. Berguna untuk menyimpan file_hash sertifikat.
+        """
+        h = hashlib.sha256()
+        with open(filepath, "rb") as f:
+            for chunk in iter(lambda: f.read(4096), b""):
+                h.update(chunk)
+        return h.hexdigest()
