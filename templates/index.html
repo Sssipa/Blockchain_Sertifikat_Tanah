@@ -4,25 +4,22 @@
   <meta charset="UTF-8">
   <title>Blockchain Sertifikat Tanah</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-  <!-- PERUBAHAN: Memanggil file style.css Anda -->
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body class="bg-light">
 
   <nav class="navbar navbar-expand-lg shadow-sm">
     <div class="container">
-      <a class="navbar-brand fw-bold text-white" href="#">🏡 Sertifikat Tanah </a>
+      <a class="navbar-brand fw-bold" href="#">Sertifikat Tanah</a>
     </div>
   </nav>
 
   <div class="container mt-5">
-    <h2 class="text-center mb-5 text-primary fw-semibold">📜 Blockchain Sertifikat Tanah</h2>
+    <h2 class="text-center mb-5 fw-bold">Blockchain Sertifikat Tanah</h2>
     
-    <!-- PERUBAHAN: Menambahkan tempat untuk Flash Message (Notifikasi) -->
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, message in messages %}
-          <!-- 'danger' untuk error, 'success' untuk sukses -->
           <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
             {{ message }}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
@@ -33,112 +30,67 @@
     
     <div class="card shadow-lg mb-5 border-0">
       <div class="card-body p-4">
-        <h5 class="card-title mb-4 text-secondary fw-semibold">➕ Tambah Transaksi Baru</h5>
-        
-        <!-- PERUBAHAN: Form disesuaikan dengan blockchain.py (nama, nomor, lokasi, luas) -->
+        <h5 class="card-title mb-4 fw-bold">Tambah Transaksi Baru</h5>
         <form action="/certificate/new" method="POST" enctype="multipart/form-data">
           <div class="row g-3">
             <div class="col-md-6">
-              <label class="form-label fw-medium">Nama Pemilik</label>
-              <!-- 'name' harus cocok dengan app.py -> blockchain.py -->
+              <label class="form-label">Nama Pemilik</label>
               <input type="text" name="nama" class="form-control shadow-sm" required>
             </div>
             <div class="col-md-6">
-              <label class="form-label fw-medium">Nomor Sertifikat</label>
-              <!-- 'name' harus cocok dengan app.py -> blockchain.py -->
+              <label class="form-label">Nomor Sertifikat</label>
               <input type="text" name="nomor_sertifikat" class="form-control shadow-sm" required>
             </div>
             <div class="col-md-6">
-              <label class="form-label fw-medium">Lokasi Tanah</label>
-              <!-- 'name' harus cocok dengan app.py -> blockchain.py -->
+              <label class="form-label">Lokasi Tanah</label>
               <input type="text" name="lokasi" class="form-control shadow-sm" required>
             </div>
             <div class="col-md-6">
-              <label class="form-label fw-medium">Luas Tanah (m²)</label>
-              <!-- 'name' harus cocok dengan app.py -> blockchain.py -->
+              <label class="form-label">Luas Tanah (m²)</label>
               <input type="text" name="luas" class="form-control shadow-sm" required>
             </div>
             <div class="col-md-12">
-              <label class="form-label fw-medium">Upload Sertifikat (jpg/png/pdf)</label>
+              <label class="form-label">Upload Sertifikat (jpg/png/pdf)</label>
               <input type="file" name="file" class="form-control shadow-sm">
             </div>
           </div>
           <div class="d-flex justify-content-between align-items-center mt-4">
-            <!-- Tombol 'Simpan' ini akan memanggil /certificate/new -->
-            <button type="submit" class="btn btn-primary px-4">💾 Simpan Transaksi</button>
-            <!-- Tombol 'Tambang' ini akan memanggil /mine -->
-            <a href="/mine" class="btn btn-success px-4">⛏️ Tambang Blok Baru</a>
+            <button type="submit" class="btn btn-primary px-4">Simpan Transaksi</button>
+            <a href="/mine" class="btn btn-success px-4">Tambang Blok Baru</a>
           </div>
         </form>
       </div>
     </div>
 
-    <!-- Blockchain Section (Tampilan Data Disesuaikan) -->
-    <!-- PERUBAHAN: 'chain' sekarang dibalik (reversed) agar blok baru di atas -->
     {% for block in chain | reverse %}
       <div class="card mb-4 border-0 shadow-sm block-card">
-        <div class="card-header bg-primary text-white fw-semibold">
-          🧱 Blok #{{ block.index }}
+        <div class="card-header bg-primary fw-bold">
+          Blok #{{ block.index }}
         </div>
         <div class="card-body bg-white">
-          <p>
-            <!-- PERUBAHAN: Menampilkan data dari dict (hasil .to_dict()) -->
-            <b>Timestamp:</b> {{ block.timestamp | string | truncate(16, True) }}<br>
-            <b>Proof:</b> {{ block.proof }}<br>
-            <b>Hash:</b> <span class="text-muted" style="word-break:break-all;">{{ block.hash | truncate(40, True) }}</span><br>
-            <b>Hash Sebelumnya:</b> <span class="text-muted" style="word-break:break-all;">{{ block.previous_hash | truncate(40, True) }}</span>
-          </p>
-
-          <div class="border-top pt-3 mt-3">
-            <h6 class="fw-semibold mb-3 text-secondary">📜 Data:</h6>
-            
-            <!-- PERUBAHAN: 'block.data' adalah nama field di blockchain.py canggih -->
-            {% if block.data %}
-              {% for tx in block.data %}
-                <div class="transaction-item p-3 mb-3 rounded shadow-sm">
-
-                  <!-- Cek apakah ini "Reward" atau "Sertifikat" -->
-                  {% if tx.note %}
-                    <p class="text-success fw-bold">🎁 {{ tx.note }}</p>
-                    {% if tx.penerima %}
-                      <p><b>Penerima:</b> {{ tx.penerima }}</p>
-                    {% endif %}
-                  {% else %}
-                    <!-- Tampilkan field baru (nama, nomor_sertifikat, dll) -->
-                    <p>
-                      <b>Pemilik:</b> {{ tx.nama }} <br>
-                      <b>No. Sertifikat:</b> {{ tx.nomor_sertifikat }} <br>
-                      <b>Lokasi:</b> {{ tx.lokasi }} <br>
-                      <b>Luas:</b> {{ tx.luas }} m²
-                    </p>
-                    {% if tx.file_hash %}
-                      <p><b>🔒 Hash File:</b> 
-                        <span class="text-muted" style="word-break:break-all;">
-                          {{ tx.file_hash | truncate(40, True) }}
-                        </span>
-                      </p>
-                    {% else %}
-                      <p class="text-muted fst-italic">Tidak ada file diunggah.</p>
-                    {% endif %}
-                  {% endif %}
-
-                </div>
-              {% endfor %}
-            {% else %}
-              <p class="text-muted">Tidak ada data</p>
-            {% endif %}
+          <div class="d-flex justify-content-between flex-wrap mb-3">
+            <div>
+              <p class="mb-1"><b>Timestamp:</b> {{ block.timestamp | string | truncate(16, True) }}</p>
+              <p class="mb-1"><b>Proof:</b> {{ block.proof }}</p>
+              <p class="mb-1"><b>Hash Sebelumnya:</b> 
+                <span style="word-break:break-all;">{{ block.previous_hash | truncate(40, True) }}</span>
+              </p>
+            </div>
+            <div class="border-start ps-3 mt-2">
+              <p class="mb-1"><b>Hash:</b> 
+                <span style="word-break:break-all;">{{ block.hash | truncate(40, True) }}</span>
+              </p>
+            </div>
           </div>
         </div>
       </div>
     {% endfor %}
 
-    <footer class="text-center mt-5 mb-4 text-muted">
+    <footer class="text-center mt-5 mb-4">
       © 2025 Sertifikat Tanah Blockchain | Dibuat untuk proyek Teknologi Blockchain
     </footer>
   </div>
   
-  <!-- Script Bootstrap (Wajib untuk menutup notifikasi/alert) -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
-
