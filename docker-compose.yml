@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  # Ini adalah Miner Pertama Anda
+  miner1:
+    build: .  # Membangun dari Dockerfile di folder ini
+    container_name: miner1
+    ports:
+      - "5001:5000" # Map port 5001 (komputer Anda) -> 5000 (kontainer)
+    volumes:
+      - ./:/app # Sinkronkan kode Anda (jika Anda ubah, server auto-reload)
+    networks:
+      - blockchain-net # Hubungkan ke jaringan
+
+  # Ini adalah Miner Kedua Anda
+  miner2:
+    build: .
+    container_name: miner2
+    ports:
+      - "5002:5000" # Map port 5002 (komputer Anda) -> 5000 (kontainer)
+    volumes:
+      - ./:/app
+    networks:
+      - blockchain-net
+
+# Mendefinisikan jaringan virtual
+# Ini yang memungkinkan 'miner1' dan 'miner2' saling "berbicara"
+# hanya dengan memanggil nama (http://miner1:5000)
+networks:
+  blockchain-net:
+    driver: bridge
