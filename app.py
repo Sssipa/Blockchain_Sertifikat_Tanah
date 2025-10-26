@@ -39,7 +39,7 @@ def mine():
 
     block = blockchain.new_block(proof)
     response = {
-        'message': "🪙 Blok baru berhasil ditambang (Proof of Work)!",
+        'message': "Blok baru berhasil ditambang (Proof of Work)!",
         'index': block.index,
         'data': block.data,
         'proof': block.proof,
@@ -80,7 +80,7 @@ def new_transaction():
     required = ['id_tanah', 'pemilik_lama', 'pemilik_baru', 'lokasi']
     if not all(k in values and values[k] for k in required):
         chain_data = [block.to_dict() for block in blockchain.chain]
-        return render_template('index.html', chain=chain_data, error="❌ Data belum lengkap!")
+        return render_template('index.html', chain=chain_data, error=" Data belum lengkap!")
 
     blockchain.new_transaction(
         values['id_tanah'],
@@ -116,7 +116,7 @@ def register_nodes():
         blockchain.register_node(node)
 
     response = {
-        'message': '✅ Node baru berhasil didaftarkan',
+        'message': 'Node baru berhasil didaftarkan',
         'total_nodes': list(blockchain.nodes),
     }
     return jsonify(response), 201
@@ -125,7 +125,7 @@ def register_nodes():
 def consensus():
     replaced = blockchain.resolve_conflicts()
     if replaced:
-        response = {'message': '✅ Chain telah diperbarui (konsensus)', 'new_chain': [b.to_dict() for b in blockchain.chain]}
+        response = {'message': 'Chain telah diperbarui (konsensus)', 'new_chain': [b.to_dict() for b in blockchain.chain]}
     else:
         response = {'message': 'Chain sudah paling valid', 'chain': [b.to_dict() for b in blockchain.chain]}
     return jsonify(response), 200
