@@ -1,0 +1,72 @@
+@import url('https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css');
+
+ 
+body {
+    font-family: 'Inter', sans-serif;
+}
+
+ 
+body {
+  font-family: 'Poppins', sans-serif;
+  background-color: #f5f7fa;
+  color: #333;
+}
+
+.navbar {
+  background: linear-gradient(90deg, #1976d2, #42a5f5);
+}
+
+.navbar-brand {
+  color: white !important;
+  font-size: 1.2rem;
+  letter-spacing: 0.5px;
+}
+
+.card {
+  border-radius: 12px;
+}
+
+.card-header {
+  border-top-left-radius: 12px !important;
+  border-top-right-radius: 12px !important;
+}
+
+.btn {
+  border-radius: 8px;
+}
+
+.block-card {
+  transition: transform 0.2s ease-in-out;
+}
+.block-card:hover {
+  transform: scale(1.01);
+}
+
+.transaction-item {
+  background: #f9fbff;
+  border-left: 4px solid #2196f3;
+}
+
+footer {
+  font-size: 0.9rem;
+}
+
+h2 {
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+}
+
+ 
+h2.text-success {
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+}
+
+.transaction-item {
+  background: #f9fbff;
+  border-left: 4px solid #2196f3;
+  transition: 0.3s;
+}
+
+.transaction-item:hover {
+  background: #eef5ff;
+  transform: scale(1.01);
+}
