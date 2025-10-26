@@ -1,11 +1,12 @@
 from flask import Flask, jsonify, request, render_template, redirect, url_for, send_from_directory, flash
 from flask_cors import CORS
+import uuid
 from uuid import uuid4
 from blockchain import Blockchain
 import os
 import hashlib
 from werkzeug.utils import secure_filename
-import uuid
+
 
 # -------------------------
 # Inisialisasi Flask app
@@ -31,9 +32,9 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 @app.route('/')
 def index():
+    """Tampilkan semua blok dalam blockchain"""
     chain_data = [block.to_dict() for block in blockchain.chain]
-    pending = blockchain.current_data
-    return render_template('index.html', chain=chain_data, pending=pending, length=len(chain_data))
+    return render_template('index.html', chain=chain_data, length=len(chain_data))
 
 
 @app.route('/mine', methods=['GET'])
