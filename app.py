@@ -1,121 +1,207 @@
+import hashlib
+import json
+import os
+import sys
+import threading
+import time
+from time import time
+from typing import List, Dict, Optional, Tuple, Set
+from urllib.parse import urlparse
+
 from flask import Flask, jsonify, request, render_template, redirect, url_for, send_from_directory, flash
 from flask_cors import CORS
 import uuid
 from uuid import uuid4
 from blockchain import Blockchain
-import os
-import hashlib
 from werkzeug.utils import secure_filename
 
-
+# -----------------------------------
+#   FLASK APP INIT
+# -----------------------------------
 app = Flask(__name__)
 CORS(app)
-app.secret_key = "supersecretkey" 
+app.secret_key = "supersecretkey"
 
-node_identifier = str(uuid4()).replace('-', '')
+# Node unik
+node_identifier = str(uuid.uuid4()).replace("-", "")
 
-blockchain = Blockchain(difficulty=3)
+# -----------------------------------
+#   SET PORT NODE INI
+# -----------------------------------
+port = 5000
+if len(sys.argv) > 1:
+    try:
+        port = int(sys.argv[1])
+    except:
+        print("Port tidak valid, memakai default 5000")
+
+print(f"[NODE] Blockchain node berjalan pada PORT {port}")
+
+# -----------------------------------
+#   INIT BLOCKCHAIN
+# -----------------------------------
+blockchain = Blockchain(port=port, difficulty=3)
 
 UPLOAD_FOLDER = os.path.join(app.root_path, 'uploads')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
+# ======================================================================
+#                           AUTO SYNC THREAD
+# ======================================================================
+
+def background_sync():
+    """Loop sinkronisasi otomatis berjalan di background"""
+    while True:
+        try:
+            print("[AUTO-SYNC] Menyinkronkan CHAIN...", flush=True)
+            blockchain.sync_chain()
+
+            print("[AUTO-SYNC] Menyinkronkan MEMPOOL...", flush=True)
+            blockchain.sync_mempool()
+        except Exception as e:
+            print(f"[AUTO-SYNC] Error: {e}")
+
+        time.sleep(5)   # sync setiap 5 detik
+
+
+# Jalankan thread sinkronisasi otomatis
+sync_thread = threading.Thread(target=background_sync, daemon=True)
+sync_thread.start()
+
+
+# ======================================================================
+#                              FRONTEND
+# ======================================================================
+
 @app.route('/')
 def index():
-    chain_data = [block.to_dict() for block in blockchain.chain]
-    return render_template('index.html', chain=chain_data, length=len(chain_data))
+    chain_data = blockchain.chain
+    return render_template(
+        'index.html',
+        chain=chain_data,
+        length=len(chain_data),
+        mempool=blockchain.current_transactions
+    )
 
 
-@app.route('/mine', methods=['GET'])
+# ======================================================================
+#                              MINE NEW BLOCK
+# ======================================================================
+@app.route('/mine')
 def mine():
-    last_block = blockchain.last_block()
-    last_proof = last_block.proof
+    if len(blockchain.current_transactions) == 0:
+        flash("Mempool kosong, tidak ada transaksi untuk ditambang!", "warning")
+        return redirect(url_for('index'))
 
-    proof = blockchain.proof_of_work(last_proof)
-    new_block = blockchain.new_block(proof)
+    block = blockchain.mine()
 
-    flash("🪙 Blok baru berhasil ditambang!", "success")
+    flash("Blok baru berhasil ditambang!", "success")
     return redirect(url_for('index'))
 
 
+# ======================================================================
+#                           NEW CERTIFICATE (TX)
+# ======================================================================
 @app.route('/certificate/new', methods=['POST'])
 def new_certificate():
-    values = request.form.to_dict()
+    data = request.form.to_dict()
 
-    nama = values.get('nama')
-    nomor = values.get('nomor_sertifikat')
-    lokasi = values.get('lokasi')
-    luas = values.get('luas')
+    nama = data.get("nama")
+    nomor = data.get("nomor_sertifikat")
+    lokasi = data.get("lokasi")
+    luas = data.get("luas")
 
     if not all([nama, nomor, lokasi, luas]):
-        flash("❌ Data sertifikat belum lengkap!", "danger")
+        flash("Data sertifikat belum lengkap!", "danger")
         return redirect(url_for('index'))
 
-    file = request.files.get('file')
+    # Upload file sertifikat
+    file = request.files.get("file")
     file_hash = None
-    file_url = None
+
     if file and file.filename:
         filename = f"{uuid.uuid4().hex}_{secure_filename(file.filename)}"
         filepath = os.path.join(UPLOAD_FOLDER, filename)
         file.save(filepath)
-        file_hash = blockchain.file_sha256(filepath)
-        file_url = url_for('uploaded_file', filename=filename)
 
-    blockchain.add_certificate(nama=nama, nomor=nomor, lokasi=lokasi, luas=luas, file_hash=file_hash)
+        with open(filepath, "rb") as f:
+            file_hash = hashlib.sha256(f.read()).hexdigest()
 
-    flash("✅ Transaksi disimpan ke mempool. Klik 'Tambang Blok Baru' untuk menambang.", "success")
+    blockchain.new_transaction(nama, nomor, lokasi, luas, file_hash)
+
+    flash("Transaksi berhasil disimpan ke mempool!", "success")
     return redirect(url_for('index'))
 
 
+# ======================================================================
+#                               DOWNLOAD FILE
+# ======================================================================
 @app.route('/uploads/<path:filename>')
 def uploaded_file(filename):
     return send_from_directory(UPLOAD_FOLDER, filename)
 
 
-@app.route('/chain', methods=['GET'])
+# ======================================================================
+#                                  CHAIN
+# ======================================================================
+@app.route('/chain')
 def full_chain():
-    response = {
-        'chain': [block.to_dict() for block in blockchain.chain],
-        'length': len(blockchain.chain)
-    }
-    return jsonify(response), 200
+    return jsonify({
+        "chain": blockchain.chain,
+        "length": len(blockchain.chain)
+    })
 
 
+# ======================================================================
+#                                  MEMPOOL
+# ======================================================================
+@app.route('/mempool')
+def mempool():
+    return jsonify(blockchain.current_transactions)
+
+
+# ======================================================================
+#                                  REGISTER NODE
+# ======================================================================
 @app.route('/nodes/register', methods=['POST'])
 def register_nodes():
     values = request.get_json(silent=True) or {}
     nodes = values.get('nodes')
+
     if not nodes:
-        return jsonify({'error': 'Silakan kirim daftar node!'}), 400
+        return jsonify({"error": "Kirim daftar node!"}), 400
 
     for node in nodes:
         blockchain.register_node(node)
 
-    response = {
-        'message': '✅ Node baru berhasil didaftarkan',
-        'total_nodes': list(blockchain.nodes)
-    }
-    return jsonify(response), 201
+    return jsonify({
+        "message": "Node berhasil diregister",
+        "nodes": list(blockchain.nodes)
+    })
 
 
-@app.route('/nodes/resolve', methods=['GET'])
-def consensus():
-    replaced, message = blockchain.resolve_conflicts()
-    if replaced:
-        response = {
-            'message': message,
-            'new_chain': [b.to_dict() for b in blockchain.chain]
-        }
-    else:
-        response = {
-            'message': message,
-            'chain': [b.to_dict() for b in blockchain.chain]
-        }
-    return jsonify(response), 200
+# ======================================================================
+#                              MANUAL SYNC (Optional)
+# ======================================================================
+@app.route('/nodes/sync/chain')
+def sync_chain_manual():
+    updated = blockchain.sync_chain()
+    return jsonify({
+        "updated": updated,
+        "chain": blockchain.chain
+    })
 
 
-if __name__ == '__main__':
-    import sys
-    port = 5000
-    if len(sys.argv) > 1:
-        port = int(sys.argv[1])
-    app.run(host='0.0.0.0', port=port, debug=True)
+@app.route('/nodes/sync/mempool')
+def sync_mempool_manual():
+    blockchain.sync_mempool()
+    return jsonify({
+        "mempool": blockchain.current_transactions
+    })
+
+
+# ======================================================================
+#                               RUN APP
+# ======================================================================
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=port, debug=True)

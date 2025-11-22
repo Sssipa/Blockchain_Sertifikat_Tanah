@@ -1,0 +1,64 @@
+[
+  {
+    "index": 1,
+    "timestamp": 1761533569.096503,
+    "data": {
+      "note": "Genesis Block"
+    },
+    "previous_hash": "0",
+    "proof": 0,
+    "nonce": 0,
+    "hash": "bd54904b3e4db4f26e0ee049f4f74a7e1de32cd44dcbf95cd090b81029e1b431"
+  },
+  {
+    "index": 2,
+    "timestamp": 1761533661.2381449,
+    "data": [
+      {
+        "file_hash": "272f7d483031c577237298065bbe4bd62d2eefd2c7c2a8cba0ee615139ccb0b7",
+        "lokasi": "Jl. Banyumas",
+        "luas": "2",
+        "nama": "sifa",
+        "nomor_sertifikat": "11272109100472"
+      }
+    ],
+    "previous_hash": "bd54904b3e4db4f26e0ee049f4f74a7e1de32cd44dcbf95cd090b81029e1b431",
+    "proof": 2832,
+    "nonce": 0,
+    "hash": "4d04db3c7512e0f1f5cfc53d9333155674503a76a582becec57abb6a3384a622"
+  },
+  {
+    "index": 3,
+    "timestamp": 1761534464.2282066,
+    "data": [
+      {
+        "file_hash": "dd1226ffef6566c5a95e5f696a234373dae977422273550f9cc4e54d76ac9bf7",
+        "lokasi": "Jl. Karana",
+        "luas": "1000",
+        "nama": "siti",
+        "nomor_sertifikat": "11272109100475"
+      }
+    ],
+    "previous_hash": "4d04db3c7512e0f1f5cfc53d9333155674503a76a582becec57abb6a3384a622",
+    "proof": 954,
+    "nonce": 0,
+    "hash": "de96cd98ae6b1bfbca9d2af4e8094ac0db2858a9433431de9050265ad05f657e"
+  },
+  {
+    "index": 4,
+    "timestamp": 1761542228.122686,
+    "data": [
+      {
+        "file_hash": "272f7d483031c577237298065bbe4bd62d2eefd2c7c2a8cba0ee615139ccb0b7",
+        "lokasi": "Jl. Karana",
+        "luas": "1000",
+        "nama": "sifa",
+        "nomor_sertifikat": "11272109100476"
+      }
+    ],
+    "previous_hash": "de96cd98ae6b1bfbca9d2af4e8094ac0db2858a9433431de9050265ad05f657e",
+    "proof": 5225,
+    "nonce": 0,
+    "hash": "7609c6cbd9c4062d1c31dcb630c8e3f4b3190ea3f6ee6ce9036e1e85d50f2cb5"
+  }
+]

@@ -11,6 +11,9 @@
   <nav class="navbar navbar-expand-lg shadow-sm">
     <div class="container">
       <a class="navbar-brand fw-bold" href="#">Sertifikat Tanah</a>
+      <div class="ms-auto">
+        <a href="/nodes/sync/chain" class="btn btn-outline-primary btn-sm">Sinkronisasi Node</a>
+      </div>
     </div>
   </nav>
 
@@ -62,26 +65,70 @@
       </div>
     </div>
 
+    <!-- ========================= -->
+    <!--       MEMPOOL SECTION     -->
+    <!-- ========================= -->
+
+    <div class="card mb-5 border-0 shadow-sm">
+      <div class="card-header bg-warning fw-bold">
+        Transaksi di Mempool (Belum Ditambang)
+      </div>
+      <div class="card-body">
+        {% if mempool and mempool|length > 0 %}
+          <ul class="list-group">
+            {% for tx in mempool %}
+              <li class="list-group-item">
+                <b>{{ tx.nama }}</b> —
+                Sertifikat: {{ tx.nomor_sertifikat }},
+                Lokasi: {{ tx.lokasi }},
+                Luas: {{ tx.luas }} m²
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="text-muted">Tidak ada transaksi di mempool.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- ========================= -->
+    <!--           CHAIN           -->
+    <!-- ========================= -->
+
     {% for block in chain | reverse %}
       <div class="card mb-4 border-0 shadow-sm block-card">
-        <div class="card-header bg-primary fw-bold">
+        <div class="card-header bg-primary fw-bold text-white">
           Blok #{{ block.index }}
         </div>
         <div class="card-body bg-white">
           <div class="d-flex justify-content-between flex-wrap mb-3">
             <div>
-              <p class="mb-1"><b>Timestamp:</b> {{ block.timestamp | string | truncate(16, True) }}</p>
+              <p class="mb-1"><b>Timestamp:</b> {{ block.timestamp }}</p>
               <p class="mb-1"><b>Proof:</b> {{ block.proof }}</p>
               <p class="mb-1"><b>Hash Sebelumnya:</b> 
-                <span style="word-break:break-all;">{{ block.previous_hash | truncate(40, True) }}</span>
+                <span style="word-break:break-all;">{{ block.previous_hash }}</span>
               </p>
             </div>
             <div class="border-start ps-3 mt-2">
               <p class="mb-1"><b>Hash:</b> 
-                <span style="word-break:break-all;">{{ block.hash | truncate(40, True) }}</span>
+                <span style="word-break:break-all;">{{ block.hash }}</span>
               </p>
             </div>
           </div>
+
+          {% if block.transactions %}
+          <b>Transaksi:</b>
+          <ul class="list-group mt-2">
+            {% for tx in block.transactions %}
+              <li class="list-group-item">
+                <b>{{ tx.nama }}</b> —
+                Sertifikat: {{ tx.nomor_sertifikat }},
+                Lokasi: {{ tx.lokasi }},
+                Luas: {{ tx.luas }} m²
+              </li>
+            {% endfor %}
+          </ul>
+          {% endif %}
         </div>
       </div>
     {% endfor %}
