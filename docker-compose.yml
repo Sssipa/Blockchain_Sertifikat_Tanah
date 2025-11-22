@@ -2,22 +2,24 @@ version: '3.8'
 
 services:
   miner1:
-    build: .  
+    build: .
     container_name: miner1
     ports:
-      - "5001:5000" 
-    volumes:
-      - ./:/app 
+      - "5001:5000"
+    environment:
+      - SELF_PORT=5001
+      - PEERS=http://miner2:5000
     networks:
-      - blockchain-net 
+      - blockchain-net
 
   miner2:
     build: .
     container_name: miner2
     ports:
       - "5002:5000"
-    volumes:
-      - ./:/app
+    environment:
+      - SELF_PORT=5002
+      - PEERS=http://miner1:5000
     networks:
       - blockchain-net
 
